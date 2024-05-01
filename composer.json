@@ -3,7 +3,8 @@
     "require": {
         "nikic/php-parser": "^5.0"
     },
-    "license": "GPL",
+    "description": "A simple PHP executor.",
+    "license": "BSD-3-Clause",
     "autoload": {
         "psr-4": {
             "Palaueb\\PhpExecutor\\": "src/"

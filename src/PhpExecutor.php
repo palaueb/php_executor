@@ -3,7 +3,15 @@
 namespace Palaueb\PhpExecutor;
 class PhpExecutor
 {
-    public function execute($code)
+    public function __construct()
+    {
+        return;
+    }
+    public function setup_execution()
+    {
+        return;
+    }
+    public function init_execution()
     {
         return;
     }
