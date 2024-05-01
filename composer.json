@@ -1,0 +1,12 @@
+{
+    "name": "palaueb/php_executor",
+    "require": {
+        "nikic/php-parser": "^5.0"
+    },
+    "license": "GPL",
+    "autoload": {
+        "psr-4": {
+            "Palaueb\\PhpExecutor\\": "src/"
+        }
+    }
+}
