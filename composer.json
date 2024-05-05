@@ -7,7 +7,7 @@
     "license": "BSD-3-Clause",
     "autoload": {
         "psr-4": {
-            "Palaueb\\PhpExecutor\\": "src/"
+            "PhpExecutor\\": "src/"
         }
     }
 }
