@@ -58,9 +58,18 @@ class PhpExecutor
     private $php_path = null;
     
     private $deep_ast = 0;
+
+    // here we store a reference to a function store for internal PHP functions that we want to mimic.
+    // when we call about classes, it will work as simillar as this, but we need to implement it.
+    private $native_emulated_functions = null;
+
     public function __construct() {
         list($namespace, $node) = $this->split_nameclass(get_class($this));
         $this->current_ns = '\\'.$namespace.'\\';
+
+        // Register the native functions that we want to mimic
+        $this->native_emulated_functions = NativeEmulatedFunctions::get_instance();
+        $this->native_emulated_functions->init_load_libs();
 
         return true;
     }
@@ -176,6 +185,16 @@ class PhpExecutor
         $this->echo("Get current file: [" . end($this->current_file) . "]" , 'M');
         return end($this->current_file);
     }
+    public function get_current_dir(){
+        $this->echo("Get current dir: [" . dirname($this->get_current_file()) . "]" , 'M');
+        return dirname($this->get_current_file());
+    }
+
+
+
+
+
+
     public function include_file($filepath, $type, $context = null) {
         $this->echo( "Include file: [$filepath] as once: ($type)" , 'M');
         //2: include_once, 3: require, 4: require_once, 1: include, 0: include_once
@@ -230,23 +249,44 @@ class PhpExecutor
     }
     public function execute_function($element, $context) {
         $name = $this->execute_ast_element($element->name, $context);
-
         $this->echo("Execute function: $name", 'M');
 
-        var_export($element);
+        //var_export($element);
         
-        //$this->execute_ast($element->stmts, $context);
+        //it could be a native function or a user defined function, detect on that first of all:
+        if(isset($this->code_stack[$context][$name])){
+            $this->echo("THE FUNCTION IS DEFINED BY THE EXECUTED PHP CODE", 'R');
+            die();
+            $this->execute_ast($this->code_stack[$context][$name]->stmts, $context);
+            return true;
+        }
 
+        return $this->mimic_function($element, $context);
+        /*
         $args = [];
         foreach($element->args as $arg) {
             $args[] = $this->execute_ast_element($arg, $context);
         }
+        */
         //TODO: we need to have our own functions proxy to call native functions or user defined functions
         //$result = call_user_func_array($name, $args);
         die("BEST FUNCTION EVER");
         return true;
     }
+    private function mimic_function($element, $context) {
+        $name = $this->execute_ast_element($element->name, $context);
+        $this->echo("Mimic function: $name", 'M');
 
+        if($this->native_emulated_functions->function_exists($name)){
+            return $this->native_emulated_functions->execute_function($name, $this, $element, $context);
+        }
+
+        $this->echo("Function not found: $name", 'R');
+        
+        $result = 'WTF!';
+
+        return $result;
+    }
 
 
 
@@ -255,6 +295,10 @@ class PhpExecutor
         $name = $this->execute_ast_element($element->name, $context);
         $this->code_stack[$context][$name] = $element;
         return true;
+    }
+    public function exists_function($element, $context) {
+        $name = $this->execute_ast_element($element->name, $context);
+        return isset($this->code_stack[$context][$name]);
     }
     public function create_class($element, $context) {
         $name = $this->execute_ast_element($element->name, $context);

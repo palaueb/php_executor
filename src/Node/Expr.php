@@ -2,7 +2,7 @@
 
 namespace PhpExecutor\Node;
 
-Class Expr {
+final Class Expr {
     //PhpParser\Node\Expr\Assign
     public static function Assign($executor, $element, $context = null) {
         $name = $executor->get_variable_name($element->var, $context); //ha de ser el nom de la variable
