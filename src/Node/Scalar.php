@@ -13,29 +13,30 @@ Class Scalar {
     //PhpParser\Node\Scalar\Int_
     //if($element instanceof \PhpParser\Node\Scalar\Int_) {
     public static function Int_($executor, $element, $context = null) {
-        if($executor->debug) echo "Integer\n";
+        $executor->echo("Integer: [" . $element->value . "]", 'B');
         return $element->value;
     }
     //PhpParser\Node\Scalar\Float_
     //if($element instanceof \PhpParser\Node\Scalar\Float_) {
     public static function Float_($executor, $element, $context = null) {
-        if($executor->debug) echo "Float\n";
+        $executor->echo("Float: [" . $element->value . "]", 'B');
         return $element->value;
     }
     //PhpParser\Node\Scalar\InterpolatedString
     //if($element instanceof \PhpParser\Node\Scalar\InterpolatedString) {
     public static function InterpolatedString($executor, $element, $context = null) {
-        if($executor->debug) echo "InterpolatedString\n";
+
         $result = '';
         foreach($element->parts as $part) {
             $result .= $executor->execute_ast_element($part, $context);
         }
+        $executor->echo("InterpolatedString: [" . $result . "]", 'B');
         return $result;
     }
     //PhpParser\Node\Scalar\EncapsedStringPart
     //if($element instanceof \PhpParser\Node\Scalar\EncapsedStringPart) {
     public static function EncapsedStringPart($executor, $element, $context = null) {
-        if($executor->debug) echo "EncapsedStringPart\n";
+        $executor->echo("EncapsedStringPart: [" . $element->value . "]", 'B');
         return $element->value;
     }
 }

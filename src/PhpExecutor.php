@@ -13,8 +13,7 @@ namespace PhpExecutor;
 
 class PhpExecutor
 {
-    public $isDebug = true;
-    public $debug = true;
+    public $isDebug = 3;
 
     // sometimes we need to execute the PHP as it was in a different path
     // so you can use this to replace the paths in the code
@@ -124,7 +123,7 @@ class PhpExecutor
     
     public function execute_ast($ast_code, $context) {
         //this function executes an ast code list, usually a stmt and returns the result
-        $this->echo("Execute AST in context [$context]\n", 'G');
+        $this->echo("Execute AST in context [$context]", 'G');
 
         foreach($ast_code as $element){
             $last = $this->execute_ast_element($element, $context);
@@ -229,7 +228,24 @@ class PhpExecutor
         }
         //if the return value is a break with a count, we need to populate that count up to the upper loops
     }
+    public function execute_function($element, $context) {
+        $name = $this->execute_ast_element($element->name, $context);
 
+        $this->echo("Execute function: $name", 'M');
+
+        var_export($element);
+        
+        //$this->execute_ast($element->stmts, $context);
+
+        $args = [];
+        foreach($element->args as $arg) {
+            $args[] = $this->execute_ast_element($arg, $context);
+        }
+        //TODO: we need to have our own functions proxy to call native functions or user defined functions
+        //$result = call_user_func_array($name, $args);
+        die("BEST FUNCTION EVER");
+        return true;
+    }
 
 
 
@@ -259,6 +275,8 @@ class PhpExecutor
         die("CREATE NAMESPACE");
         return true;
     }
+
+
     public function get_variable_name($var) {
         //TODO code this to the right namespace / class object / function environment
         $name=$var->name;
@@ -278,11 +296,11 @@ class PhpExecutor
     }
     public function set_variable_value($var, $expr) {
         //TODO code this to the right namespace / class object / function environment
-        if($this->debug) echo "Set variable: " . var_export($var, true) . " = " . var_export($expr, true) . "\n";
+        $this->echo("Set variable: " . var_export($var, true) . " = " . var_export($expr, true), 'M');
         $this->execution_stack[$var] = $expr;
     }
     public function get_constant($name) {
-        if($this->debug) echo "Get constant: $name" . PHP_EOL;
+        $this->echo("Get constant: $name", 'M');
         if(!isset($this->custom_constants[$name])){
             if(defined($name)){
                 return constant($name);
@@ -292,9 +310,9 @@ class PhpExecutor
         return $this->custom_constants[$name];
     }
     public function halt_execution() {
-        if($this->debug) echo "Halt execution\n";
+        $this->echo("Halt execution", 'R');
 
-        var_export($this->code_stack);
+        $this->echo(var_export($this->code_stack, true), 'E');
         //TODO: implement an extendable way to process data after the end of the execution.
 
         die();
@@ -310,8 +328,8 @@ class PhpExecutor
         if(substr($path, 0, 2) == './'){
             $path = substr($path, 2);
         }
-        echo "Populated dir : ".dirname($this->get_current_file())."\n";
         $pop_path = dirname($this->get_current_file()) . '/' . $path;
+        $this->echo("Populated path: $pop_path", 'M');
 
         return $pop_path;
     }
@@ -378,7 +396,7 @@ class PhpExecutor
         return true;
     }
     public function setup_execution($config) {
-        $this->echo("Setup execution\n", 'Y');
+        $this->echo("Setup execution", 'Y');
 
         $this->set_php_ini($config['php_ini']);
         //$this->set_replace_path($config['path_replace']);
@@ -390,22 +408,47 @@ class PhpExecutor
 
 
     public $colors = [
-        'R' => "\033[31m", // red
-        'G' => "\033[32m", // green
-        'Y' => "\033[33m", // yellow
-        'B' => "\033[34m", // blue
-        'M' => "\033[35m", // magenta
-        'C' => "\033[36m", // cyan
-        'W' => "\033[37m", // white
-        'E' => "\033[90m", // grey
+        'R' => "\033[31m", // red level 0
+        'G' => "\033[32m", // green level 2
+        'Y' => "\033[33m", // yellow level 1
+        'B' => "\033[34m", // blue level 3
+        'M' => "\033[35m", // magenta level 1
+        'C' => "\033[36m", // cyan level 2
+        'W' => "\033[37m", // white no level
+        'E' => "\033[90m", // grey level 4
         'S' => "\033[0m", // reset
     ];
 
     // Only prints white, other colors are for debug purposes
     public function echo($text, $color) {
-        if(!$this->isDebug && $color != 'W'){
+        //echo "RAW: $text [$color]\n";
+        // log levels by color, White is allways visible, the rest needs to have $this->isDebug = true
+        if ($color != 'W' && $this->isDebug === false) {
             return false;
         }
-        echo $this->colors[$color] . $text . $this->colors['S'] . PHP_EOL;
+
+        if (!isset($this->colors[$color])) {
+            die("NO COLOR DEFINED!");
+        }
+        if($this->isDebug === 0 && !in_array($color, ['R', 'W'])) {
+            return false;
+        }
+        if($this->isDebug === 1 && !in_array($color, ['R', 'W','Y', 'M'])) {
+            return false;
+        }
+        if($this->isDebug === 2 && !in_array($color, ['R', 'W','Y', 'M', 'G', 'C'])) {
+            return false;
+        }
+        if($this->isDebug === 3 && !in_array($color, ['R', 'W','Y', 'M', 'G', 'C', 'B'])) {
+            return false;
+        }
+        
+        if($color == 'W'){
+            $text = '$ ' . $text;
+        }else{
+            $text .= PHP_EOL;
+        }
+
+        echo $this->colors[$color] . $text . $this->colors['S'];
     }
 }

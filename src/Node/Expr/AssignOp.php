@@ -13,7 +13,7 @@ Class AssignOp {
             $right = $expr;
             $result = $left ** $right;
 
-            if($executor->debug) echo "AssignOp Pow: " . $left . " ** " . $right . " = " . $result . "\n";
+            $executor->echo("AssignOp Pow: " . $left . " ** " . $right . " = " . $result, 'B');
 
             $executor->set_variable_value($name, $result, $context);
             return true;
@@ -28,7 +28,7 @@ Class AssignOp {
             $right = $expr;
             $result = $left . $right;
 
-            if($executor->debug) echo "AssignOp Concat: " . $left . " . " . $right . " = " . $result . "\n";
+            $executor->echo("AssignOp Concat: " . $left . " . " . $right . " = " . $result, 'B');
 
             $executor->set_variable_value($name, $result);
             return true;
@@ -43,7 +43,7 @@ Class AssignOp {
             $right = $expr;
             $result = $left + $right;
 
-            if($executor->debug) echo "AssignOp Plus: " . $left . " + " . $right . " = " . $result . "\n";
+            $executor->echo("AssignOp Plus: " . $left . " + " . $right . " = " . $result, 'B');
 
             $executor->set_variable_value($name, $result, $context);
             return true;
@@ -58,7 +58,7 @@ Class AssignOp {
             $right = $expr;
             $result = $left - $right;
 
-            if($executor->debug) echo "AssignOp Minus: " . $left . " - " . $right . " = " . $result . "\n";
+            $executor->echo("AssignOp Minus: " . $left . " - " . $right . " = " . $result, 'B');
 
             $executor->set_variable_value($name, $result, $context);
             return true;
@@ -73,7 +73,7 @@ Class AssignOp {
             $right = $expr;
             $result = $left * $right;
 
-            if($executor->debug) echo "AssignOp Mul: " . $left . " * " . $right . " = " . $result . "\n";
+            $executor->echo("AssignOp Mul: " . $left . " * " . $right . " = " . $result, 'B');
 
             $executor->set_variable_value($name, $result, $context);
             return true;
@@ -88,7 +88,7 @@ Class AssignOp {
             $right = $expr;
             $result = $left / $right;
 
-            if($executor->debug) echo "AssignOp Div: " . $left . " / " . $right . " = " . $result . "\n";
+            $executor->echo("AssignOp Div: " . $left . " / " . $right . " = " . $result, 'B');
 
             $executor->set_variable_value($name, $result, $context);
             return true;
@@ -103,7 +103,7 @@ Class AssignOp {
             $right = $expr;
             $result = $left % $right;
 
-            if($executor->debug) echo "AssignOp Mod: " . $left . " % " . $right . " = " . $result . "\n";
+            $executor->echo("AssignOp Mod: " . $left . " % " . $right . " = " . $result, 'B');
 
             $executor->set_variable_value($name, $result, $context);
             return true;
@@ -118,9 +118,9 @@ Class AssignOp {
             $right = $expr;
             $result = $left & $right;
 
-            if($executor->debug) echo "AssignOp BitwiseAnd: " . $left . " & " . $right . " = " . $result . "\n";
+            $executor->echo("AssignOp BitwiseAnd: " . $left . " & " . $right . " = " . $result, 'B');
             //show results as binary representations
-            if($executor->debug) echo "AssignOp BitwiseAnd: " . decbin($left) . " & " . decbin($right) . " = " . decbin($result) . "\n";
+            $executor->echo("AssignOp BitwiseAnd: " . decbin($left) . " & " . decbin($right) . " = " . decbin($result), 'B');
 
 
             $executor->set_variable_value($name, $result, $context);
@@ -136,9 +136,9 @@ Class AssignOp {
             $right = $expr;
             $result = $left | $right;
 
-            if($executor->debug) echo "AssignOp BitwiseOr: " . $left . " | " . $right . " = " . $result . "\n";
+            $executor->echo("AssignOp BitwiseOr: " . $left . " | " . $right . " = " . $result, 'B');
             //show results as binary representations
-            if($executor->debug) echo "AssignOp BitwiseOr: " . decbin($left) . " | " . decbin($right) . " = " . decbin($result) . "\n";
+            $executor->echo("AssignOp BitwiseOr: " . decbin($left) . " | " . decbin($right) . " = " . decbin($result), 'B');
 
             $executor->set_variable_value($name, $result, $context);
             return true;
@@ -153,9 +153,9 @@ Class AssignOp {
             $right = $expr;
             $result = $left ^ $right;
 
-            if($executor->debug) echo "AssignOp BitwiseXor: " . $left . " ^ " . $right . " = " . $result . "\n";
+            $executor->echo("AssignOp BitwiseXor: " . $left . " ^ " . $right . " = " . $result, 'B');
             //show results as binary representations
-            if($executor->debug) echo "AssignOp BitwiseXor: " . decbin($left) . " ^ " . decbin($right) . " = " . decbin($result) . "\n";
+            $executor->echo("AssignOp BitwiseXor: " . decbin($left) . " ^ " . decbin($right) . " = " . decbin($result), 'B');
 
             $executor->set_variable_value($name, $result, $context);
             return true;
@@ -170,9 +170,9 @@ Class AssignOp {
             $right = $expr;
             $result = $left << $right;
 
-            if($executor->debug) echo "AssignOp ShiftLeft: " . $left . " << " . $right . " = " . $result . "\n";
+            $executor->echo("AssignOp ShiftLeft: " . $left . " << " . $right . " = " . $result, 'B');
             //show results as binary representations
-            if($executor->debug) echo "AssignOp ShiftLeft: " . decbin($left) . " << " . decbin($right) . " = " . decbin($result) . "\n";
+            $executor->echo("AssignOp ShiftLeft: " . decbin($left) . " << " . decbin($right) . " = " . decbin($result), 'B');
 
             $executor->set_variable_value($name, $result, $context);
             return true;
@@ -187,9 +187,9 @@ Class AssignOp {
             $right = $expr;
             $result = $left >> $right;
 
-            if($executor->debug) echo "AssignOp ShiftRight: " . $left . " >> " . $right . " = " . $result . "\n";
+            $executor->echo("AssignOp ShiftRight: " . $left . " >> " . $right . " = " . $result, 'B');
             //show results as binary representations
-            if($executor->debug) echo "AssignOp ShiftRight: " . decbin($left) . " >> " . decbin($right) . " = " . decbin($result) . "\n";
+            $executor->echo("AssignOp ShiftRight: " . decbin($left) . " >> " . decbin($right) . " = " . decbin($result), 'B');
 
             $executor->set_variable_value($name, $result, $context);
             return true;
@@ -197,12 +197,13 @@ Class AssignOp {
         //PhpParser\Node\Expr\AssignOp\Coalesce
         //if($element instanceof \PhpParser\Node\Expr\AssignOp\Coalesce) {
         public static function Coalesce($executor, $element, $context = null) {
-            if($executor->debug) echo "AssignOp Coalesce:\n";
+            $executor->echo("AssignOp Coalesce", 'B');
+
             $name = $executor->get_variable_name($element->var, $context);
             $expr = $executor->execute_ast_element($element->expr, $context);
             $left = null;
             if(!$executor->exists_variable_name($element->var, $context)) {   
-                if($executor->debug) echo "Variable is null, then we set to:" . $expr . "\n";             
+                $executor->echo("Variable is null, then we set to:" . $expr, 'B');
                 $executor->set_variable_value($name, $expr, $context);
             }else{
                 $left = $executor->get_variable_value($name, $context);
@@ -211,7 +212,7 @@ Class AssignOp {
             $right = $expr;
             $left ??= $right;
 
-            if($executor->debug) echo "AssignOp Coalesce: " . $name . " ??= " . $right . "\n";
+            $executor->echo("AssignOp Coalesce: " . $left . " ??= " . $right . " = " . $left, 'B');
 
             return true;
         }

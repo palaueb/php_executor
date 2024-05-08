@@ -9,7 +9,7 @@ Class Cast {
             $value = $executor->execute_ast_element($element->expr, $context);
             $result = (int)$value;
 
-            if($executor->debug) echo "Cast Int: " . var_export($value, true) . " = " . var_export($result, true) . "\n";
+            $executor->echo("Cast Int: " . var_export($value, true) . " = " . var_export($result, true), 'B');
             
             return $result;
         }
@@ -19,7 +19,7 @@ Class Cast {
             $value = $executor->execute_ast_element($element->expr, $context);
             $result = (float)$value;
 
-            if($executor->debug) echo "Cast Double: " . var_export($value, true) . " = " . var_export($result, true) . "\n";
+            $executor->echo("Cast Double: " . var_export($value, true) . " = " . var_export($result, true), 'B');
             
             return $result;
         }
@@ -29,7 +29,7 @@ Class Cast {
             $value = $executor->execute_ast_element($element->expr, $context);
             $result = (string)$value;
 
-            if($executor->debug) echo "Cast String: " . var_export($value, true) . " = " . var_export($result, true) . "\n";
+            $executor->echo("Cast String: " . var_export($value, true) . " = " . var_export($result, true), 'B');
             
             return $result;
         }
@@ -39,7 +39,7 @@ Class Cast {
             $value = $executor->execute_ast_element($element->expr, $context);
             $result = (bool)$value;
 
-            if($executor->debug) echo "Cast Bool: " . var_export($value, true) . " = " . var_export($result, true) . "\n";
+            $executor->echo("Cast Bool: " . var_export($value, true) . " = " . var_export($result, true), 'B');
             
             return $result;
         }
@@ -49,7 +49,7 @@ Class Cast {
             $value = $executor->execute_ast_element($element->expr, $context);
             $result = (array)$value;
 
-            if($executor->debug) echo "Cast Array: " . var_export($value, true) . " = " . var_export($result, true) . "\n";
+            $executor->echo("Cast Array: " . var_export($value, true) . " = " . var_export($result, true), 'B');
             
             return $result;
         }
@@ -60,7 +60,7 @@ Class Cast {
             $value = $executor->execute_ast_element($element->expr);
             $result = (unset)$value;
 
-            if($executor->debug) echo "Cast Unset: " . var_export($value, true) . " = " . var_export($result, true) . "\n";
+            $executor->echo("Cast Unset: " . var_export($value, true) . " = " . var_export($result, true), 'B');
             
             return $result;
         }

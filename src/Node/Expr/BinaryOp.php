@@ -19,7 +19,8 @@ Class BinaryOp {
     public static function Coalesce($executor, $element, $context = null) {
         $left = $executor->execute_ast_element($element->left, $context);
         $right = $executor->execute_ast_element($element->right, $context);
-        if($executor->debug) echo "Coalesce: " . var_export($left, true) . " ?? " . var_export($right, true) . " = " . var_export($left ?? $right, true) . "\n";
+
+        $executor->echo("Coalesce: " . var_export($left, true) . " ?? " . var_export($right, true) . " = " . var_export($left ?? $right, true), 'B');
         return $left ?? $right;
     }
     //PhpParser\Node\Expr\BinaryOp\BooleanOr
@@ -27,7 +28,8 @@ Class BinaryOp {
     public static function BooleanOr($executor, $element, $context = null) {
         $left = $executor->execute_ast_element($element->left, $context);
         $right = $executor->execute_ast_element($element->right, $context);
-        if($executor->debug) echo "BooleanOr: " . var_export($left, true) . " || " . var_export($right, true) . " = " . var_export($left || $right, true) . "\n";
+
+        $executor->echo("BooleanOr: " . var_export($left, true) . " || " . var_export($right, true) . " = " . var_export($left || $right, true), 'B');
         return $left || $right;
     }
     //PhpParser\Node\Expr\BinaryOp\BooleanAnd
@@ -35,7 +37,8 @@ Class BinaryOp {
     public static function BooleanAnd($executor, $element, $context = null) {
         $left = $executor->execute_ast_element($element->left, $context);
         $right = $executor->execute_ast_element($element->right, $context);
-        if($executor->debug) echo "BooleanAnd: " . var_export($left, true) . " && " . var_export($right, true) . " = " . var_export($left && $right, true) . "\n";
+
+        $executor->echo("BooleanAnd: " . var_export($left, true) . " && " . var_export($right, true) . " = " . var_export($left && $right, true), 'B');
         return $left && $right;
     }
     //PhpParser\Node\Expr\BinaryOp\Equal
@@ -43,7 +46,8 @@ Class BinaryOp {
     public static function Equal($executor, $element, $context = null) {
         $left = $executor->execute_ast_element($element->left, $context);
         $right = $executor->execute_ast_element($element->right, $context);
-        if($executor->debug) echo "Equal: " . var_export($left, true) . " == " . var_export($right, true) . " = " . var_export($left == $right, true) . "\n";
+
+        $executor->echo("Equal: " . var_export($left, true) . " == " . var_export($right, true) . " = " . var_export($left == $right, true), 'B');
         return $left == $right;
     }
     //PhpParser\Node\Expr\BinaryOp\NotEqual
@@ -51,7 +55,8 @@ Class BinaryOp {
     public static function NotEqual($executor, $element, $context = null) {
         $left = $executor->execute_ast_element($element->left, $context);
         $right = $executor->execute_ast_element($element->right, $context);
-        if($executor->debug) echo "NotEqual: " . var_export($left, true) . " != " . var_export($right, true) . " = " . var_export($left != $right, true) . "\n";
+
+        $executor->echo("NotEqual: " . var_export($left, true) . " != " . var_export($right, true) . " = " . var_export($left != $right, true), 'B');
         return $left != $right;
     }
     //PhpParser\Node\Expr\BinaryOp\Identical
@@ -59,7 +64,8 @@ Class BinaryOp {
     public static function Identical($executor, $element, $context = null) {
         $left = $executor->execute_ast_element($element->left, $context);
         $right = $executor->execute_ast_element($element->right, $context);
-        if($executor->debug) echo "Identical: " . var_export($left, true) . " === " . var_export($right, true) . " = " . var_export($left === $right, true) . "\n";
+
+        $executor->echo("Identical: " . var_export($left, true) . " === " . var_export($right, true) . " = " . var_export($left === $right, true), 'B');
         return $left === $right;
     }
     //PhpParser\Node\Expr\BinaryOp\NotIdentical
@@ -67,7 +73,8 @@ Class BinaryOp {
     public static function NotIdentical($executor, $element, $context = null) {
         $left = $executor->execute_ast_element($element->left);
         $right = $executor->execute_ast_element($element->right);
-        if($executor->debug) echo "NotIdentical: " . var_export($left, true) . " !== " . var_export($right, true) . " = " . var_export($left !== $right, true) . "\n";
+
+        $executor->echo("NotIdentical: " . var_export($left, true) . " !== " . var_export($right, true) . " = " . var_export($left !== $right, true), 'B');
         return $left !== $right;
     }
     //PhpParser\Node\Expr\BinaryOp\SmallerOrEqual
@@ -75,7 +82,8 @@ Class BinaryOp {
     public static function SmallerOrEqual($executor, $element, $context = null) {
         $left = $executor->execute_ast_element($element->left, $context);
         $right = $executor->execute_ast_element($element->right, $context);
-        if($executor->debug) echo "SmallerOrEqual: " . $left . " <= " . $right . " = " . var_export($left <= $right, true) . "\n";
+
+        $executor->echo("SmallerOrEqual: " . $left . " <= " . $right . " = " . var_export($left <= $right, true), 'B');
         return $left <= $right;
     }
     //PhpParser\Node\Expr\BinaryOp\GreaterOrEqual
@@ -83,7 +91,8 @@ Class BinaryOp {
     public static function GreaterOrEqual($executor, $element, $context = null) {
         $left = $executor->execute_ast_element($element->left, $context);
         $right = $executor->execute_ast_element($element->right, $context);
-        if($executor->debug) echo "GreaterOrEqual: " . $left . " >= " . $right . " = " . var_export($left >= $right, true) . "\n";
+
+        $executor->echo("GreaterOrEqual: " . $left . " >= " . $right . " = " . $left >= $right, 'B');
         return $left >= $right;
     }
     //PhpParser\Node\Expr\BinaryOp\Spaceship
@@ -91,7 +100,8 @@ Class BinaryOp {
     public static function Spaceship($executor, $element, $context = null) {
         $left = $executor->execute_ast_element($element->left, $context);
         $right = $executor->execute_ast_element($element->right, $context);
-        if($executor->debug) echo "Spaceship: " . $left . " <=> " . $right . " = " . var_export($left <=> $right, true) . "\n";
+
+        $executor->echo("Spaceship: " . $left . " <=> " . $right . " = " . ($left <=> $right), 'B');
         return $left <=> $right;
     }
     //PhpParser\Node\Expr\BinaryOp\Smaller
@@ -99,7 +109,8 @@ Class BinaryOp {
     public static function Smaller($executor, $element, $context = null) {
         $left = $executor->execute_ast_element($element->left, $context);
         $right = $executor->execute_ast_element($element->right, $context);
-        if($executor->debug) echo "Smaller: " . $left . " < " . $right . " = " . var_export($left < $right, true) . "\n";
+
+        $executor->echo("Smaller: " . $left . " < " . $right . " = " . var_export($left < $right, true), 'B');
         return $left < $right;
     }
     //PhpParser\Node\Expr\BinaryOp\Concat
@@ -117,7 +128,8 @@ Class BinaryOp {
     public static function Plus($executor, $element, $context = null) {
         $left = $executor->execute_ast_element($element->left, $context);
         $right = $executor->execute_ast_element($element->right, $context);
-        if($executor->debug) echo "Sum: " . $left . " + " . $right . " = " . ($left + $right) . "\n";
+
+        $executor->echo("Plus: " . $left . " + " . $right . " = " . ($left + $right), 'B');
         return $left + $right;
     }
     //PhpParser\Node\Expr\BinaryOp\Minus
@@ -125,7 +137,8 @@ Class BinaryOp {
     public static function Minus($executor, $element, $context = null) {
         $left = $executor->execute_ast_element($element->left, $context);
         $right = $executor->execute_ast_element($element->right, $context);
-        if($executor->debug) echo "Substract: " . $left . " - " . $right . " = " . ($left - $right) . "\n";
+
+        $executor->echo("Minus: " . $left . " - " . $right . " = " . ($left - $right), 'B');
         return $left - $right;
     }
     //PhpParser\Node\Expr\BinaryOp\Mul
@@ -133,7 +146,8 @@ Class BinaryOp {
     public static function Mul($executor, $element, $context = null) {
         $left = $executor->execute_ast_element($element->left, $context);
         $right = $executor->execute_ast_element($element->right, $context);
-        if($executor->debug) echo "Multiply: " . $left . " * " . $right . " = " . ($left * $right) . "\n";
+
+        $executor->echo("Multiply: " . $left . " * " . $right . " = " . ($left * $right), 'B');
         return $left * $right;
     }
     //PhpParser\Node\Expr\BinaryOp\Div
@@ -141,7 +155,8 @@ Class BinaryOp {
     public static function Div($executor, $element, $context = null) {
         $left = $executor->execute_ast_element($element->left, $context);
         $right = $executor->execute_ast_element($element->right, $context);
-        if($executor->debug) echo "Divide: " . $left . " / " . $right . " = " . ($left / $right) . "\n";
+
+        $executor->echo("Divide: " . $left . " / " . $right . " = " . ($left / $right), 'B');
         return $left / $right;
     }
     //PhpParser\Node\Expr\BinaryOp\ShiftLeft
@@ -149,7 +164,8 @@ Class BinaryOp {
     public static function ShiftLeft($executor, $element, $context = null) {
         $left = $executor->execute_ast_element($element->left, $context);
         $right = $executor->execute_ast_element($element->right, $context);
-        if($executor->debug) echo "ShiftLeft: " . decbin($left) . " << " . decbin($right) . " = " . decbin($left << $right) . "\n";
+
+        $executor->echo("ShiftLeft: " . decbin($left) . " << " . decbin($right) . " = " . decbin($left << $right), 'B');
         return $left << $right;
     }
     //PhpParser\Node\Expr\BinaryOp\ShiftRight
@@ -157,7 +173,8 @@ Class BinaryOp {
     public static function ShiftRight($executor, $element, $context = null) {
         $left = $executor->execute_ast_element($element->left, $context);
         $right = $executor->execute_ast_element($element->right, $context);
-        if($executor->debug) echo "ShiftRight: " . decbin($left) . " >> " . decbin($right) . " = " . decbin($left >> $right) . "\n";
+
+        $executor->echo("ShiftRight: " . decbin($left) . " >> " . decbin($right) . " = " . decbin($left >> $right), 'B');
         return $left >> $right;
     }
 }
