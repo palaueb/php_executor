@@ -13,64 +13,104 @@ namespace PhpExecutor;
 
 class PhpExecutor
 {
+    public $isDebug = true;
     public $debug = true;
 
-    private $path_replace = [];
-    private $init_script = '';
+    // sometimes we need to execute the PHP as it was in a different path
+    // so you can use this to replace the paths in the code
+    //TODO in a near future, not important now
+    //private $path_replace = [];
+
+    //path to the initial script to be executed 
+    private $init_script = ''; 
+    //php_ini configuration values
     private $php_ini = [];
 
+    // here we save the paths of the files that we have already processed
+    // [virtual_path => real_path]
     private $virtual_path_table = [];
+    // here we save the ast of the files that we have already processed
+    // the virtual path is the key (not the real path)
     private $file_content_table = [];
 
     //here we save the current variables and their values
     //in the execution stack we mimic the architecture of the functions and objects instantiated, also the namespaces.
     private $execution_stack = [];
-    //here we saves the code that will be or not executed futurely, also we need to have the current environment stack defined
-    private $code_stack = [];
+    //here we save the code that will be or not executed futurely,
+    // also we need to have the current environment stack defined
+    private $code_stack = []; //this must be a multidimensional array
 
-    // provably this will come as a key/key/key on an array
+    // as the code_stack, it needs to mymyc the architecture of the code_stack
     private $current_environment = [];
 
+    // here we save the contants that we want to override
     private $custom_constants = [];
+
+    // this value is the current namespace that we are working on
+    // we save it because we use it to call the right class to execute the right node type
     private $current_ns = null;
 
-    public function __construct()
-    {
+    // this value is the current script that we are working on processing its ast
+    private $current_file = [];
+
+    // the root folder of the PhpExecutor execution
+    private $root_path = null;
+    // the root folder of the main file we are executing
+    private $php_path = null;
+    
+    private $deep_ast = 0;
+    public function __construct() {
         list($namespace, $node) = $this->split_nameclass(get_class($this));
         $this->current_ns = '\\'.$namespace.'\\';
 
         return true;
     }
 
-    public function init_execution()
-    {
-        if($this->debug) echo "Init execution\n";
+    public function init_execution() {
+        $this->echo("Init execution", 'Y');
 
-        $initial_ast = $this->prepare_ast($this->init_script);
-        $this->execute_ast($initial_ast);
+        //real path of the script
+        $this->root_path = $this->get_root_path($this->init_script);
+        //virtual path of the main script
+        $this->php_path = $this->get_php_path($this->init_script);
 
-        var_export($this->execution_stack);
+        $initial_ast = $this->prepare_ast($this->php_path);
+        $this->execute_ast($initial_ast, '\\');
+
+        $this->halt_execution();
         return;
     }
 
     //this function get content of PHP file and saves his ast into the file_content_table array
-    private function prepare_ast(string $raw_path_filename) 
-    {
-        if($this->debug) echo "Prepare AST\n";
+    private function prepare_ast(string $raw_path_filename) {
+        $this->echo("Prepare AST", 'Y');
 
-        $script_content = file_get_contents($raw_path_filename);
-        $virtual_path = $this->normalize_path_name($this->init_script);
-        $this->virtual_path_table[$virtual_path] = $this->init_script; // we need to know the processed files to avoid loops
+        $raw_path_filename = $this->populate_path($raw_path_filename);
+
+        //echo "FILE GET CONTENTS: $raw_path_filename \n";die();
+
+        $script_content = @file_get_contents($raw_path_filename);
+        if($script_content === false){
+            //TODO: search for a better solution, in PHP this is usually a warning, 
+            // to maintain this behavior it needs to be able to implement wich version of PHP we are using
+            $this->echo("File not found: $raw_path_filename", 'R');
+            die(); 
+        }
+        /*
+        $virtual_path = $this->normalize_path_name($raw_path_filename);
+        $this->virtual_path_table[$virtual_path] = $raw_path_filename; // we need to know the processed files to avoid loops
+        */
+        $this->get_in_file($raw_path_filename);
 
         $current_ast = $this->load_ast($script_content);
-
-        $this->file_content_table[$virtual_path] = $current_ast;
+        
+        $this->file_content_table[$raw_path_filename] = $current_ast;
         
         return $current_ast;
     }
     public function load_ast(string $string_php_code) 
     {
-        if($this->debug) echo "Load AST\n";
+        $this->echo("Load AST", 'Y');
 
         $parser = (new \PhpParser\ParserFactory())->createForNewestSupportedVersion();
         try {
@@ -82,27 +122,23 @@ class PhpExecutor
         return $ast;
     }
     
-    public function execute_ast($ast_code)
-    {
+    public function execute_ast($ast_code, $context) {
         //this function executes an ast code list, usually a stmt and returns the result
-        if($this->debug) echo "Execute AST\n";
+        $this->echo("Execute AST in context [$context]\n", 'G');
 
         foreach($ast_code as $element){
-            $last = $this->execute_ast_element($element);
+            $last = $this->execute_ast_element($element, $context);
         }
         return $last;
     }
 
     //this function executes the ast element and returns the result
-    public function execute_ast_element($element, $context = null)
-    {
+    public function execute_ast_element($element, $context = null) {
         //TODO: refactor to encapsulate each nodetype into a custom class that being called dinamically
         //      and that must be extendable by ouside user configuration to inject and modify the PHP flow
         
         $class_name = get_class($element);
-        if($this->debug) echo "Execute AST element: (" .$class_name. ")\n";
-
-        $context = null;
+        $this->echo( "Execute AST element: (" .$class_name. ") in context: [$context]", 'E');
 
         //IMPLEMENT THE EXECUTION OF EACH NODE TYPE DYNAMICALLY FROM OUTSIDE THIS FILE
         $class_name = str_replace('PhpParser\\', $this->current_ns, $class_name);
@@ -116,17 +152,53 @@ class PhpExecutor
 
         // IF THE NODE TYPE IS NOT IMPLEMENTED, THEN THROW AN EXCEPTION
         if(is_null($element)) {
-            echo "NULL DETECTED ON ELEMENT!!!!!\n";
+            $this->echo("NULL DETECTED ON ELEMENT!!!!!", 'R');
             die();
         }
-        echo "ELEMENT NOT IN LIST:" . get_class($element) . "\n";
-        
-        throw new \Exception("Element not recognized:" . get_class($element) . "\n". var_export($element, true) . "\n");
+       
+        throw new \Exception("Element not recognized: (" . get_class($element) . ")\n". var_export($element, true) . "\n");
         die();
     }
 
-    public function execute_for($element)
-    {
+
+
+
+    public function get_in_file($filepath){
+        $depth = count($this->current_file);
+        $message = str_pad("Get in file: $filepath", $depth, ">", STR_PAD_LEFT);
+        $this->echo($message , 'M');
+        $this->current_file[] = $filepath;
+    }
+    public function get_out_file(){
+        $this->echo( "Get out file: [" . end($this->current_file) . "]", 'M');
+        array_pop($this->current_file);
+    }
+    public function get_current_file(){
+        $this->echo("Get current file: [" . end($this->current_file) . "]" , 'M');
+        return end($this->current_file);
+    }
+    public function include_file($filepath, $type, $context = null) {
+        $this->echo( "Include file: [$filepath] as once: ($type)" , 'M');
+        //2: include_once, 3: require, 4: require_once, 1: include, 0: include_once
+
+        //normalize means that we save the virtual path to the file, 
+        // this means that we have a real context of execution and an emulated virtual context
+        //$virtual_path = $this->normalize_path_name($filepath);
+    
+        $once = ($type == 2 || $type == 4);
+        if($once && isset($this->virtual_path_table[$filepath])){
+            // when you do a _once, it means that you only want to include the file once, if it is already included, then skip it.
+            return true;
+        }
+        
+        $ast = $this->prepare_ast($filepath);
+        $result = $this->execute_ast($ast, $context);
+
+        $this->get_out_file();
+
+        return $result;
+    }
+    public function execute_for($element, $context) {
         //init variables
         foreach($element->init as $init){
             $this->execute_ast_element($init);
@@ -146,7 +218,7 @@ class PhpExecutor
             }
             //TODO implement the break count
 
-            $return = $this->execute_ast($element->stmts);
+            $return = $this->execute_ast($element->stmts, $context);
             var_export($element->stmts);die();
             
             //check if the element is a break, if it is, then break the loop
@@ -158,63 +230,59 @@ class PhpExecutor
         //if the return value is a break with a count, we need to populate that count up to the upper loops
     }
 
-    public function create_function($element)
-    {
-        //TODO Needed to implement the right environment for functions/classes/namespaces/objects/etc...
-        var_export($element);die("NYESZT");
-        $name = $this->execute_ast_element($element->name);
-        $this->save_code_in_environment($name, $element);
-        var_export($element);die("NYESZT");
-        /*
-        $params = [];
-        foreach($element->params as $param){
-            $params[] = $this->execute_ast_element($param);
-        }
+
+
+
+
+
+    public function create_function($element, $context) {
+        $name = $this->execute_ast_element($element->name, $context);
+        $this->code_stack[$context][$name] = $element;
+        return true;
+    }
+    public function create_class($element, $context) {
+        $name = $this->execute_ast_element($element->name, $context);
+        $element->metadata = [
+            'context' => $context,
+            'filename' => $this->get_current_file()
+        ];
+        $this->code_stack[$context][$name] = $element;
+        return true;
+    }
+    public function create_namespace($element, $context) {
+        $name = $this->execute_ast_element($element->name, $context);
+        $new_context = $context . $name . "\\";
         $stmts = $element->stmts;
-        $this->functions[$name] = function() use ($params, $stmts){
-            $this->execution_stack = [];
-            foreach($params as $i => $param){
-                $this->execution_stack[$param] = func_get_arg($i);
-            }
-            $this->execute_ast($stmts);
-        };
-        */
+        $this->execute_ast($stmts, $new_context);
+        
+        var_export($this->code_stack);
+        die("CREATE NAMESPACE");
+        return true;
     }
-    public function save_code_in_environment($name, $element){
-        // TODO: implement the right environment for functions/classes/namespaces/objects/etc...
-        //$this->context[$name] = $element;
-    }
-    public function get_variable_name($var)
-    {
+    public function get_variable_name($var) {
         //TODO code this to the right namespace / class object / function environment
         $name=$var->name;
         if(!is_string($name)) $name = $this->execute_ast_element($name); 
         return $name;
     }
-    public function exists_variable_name($var)
-    {
+    public function exists_variable_name($var) {
         //TODO code this to the right namespace / class object / function environment
         $name=$var->name;
         if(!is_string($name)) $name = $this->execute_ast_element($name); 
         return isset($this->execution_stack[$name]);
     }
-    public function get_variable_value($name)
-    {
+    public function get_variable_value($name) {
         //TODO code this to the right namespace / class object / function environment
         if(!is_string($name)) $name = $this->execute_ast_element($name);
         return $this->execution_stack[$name];
     }
-    public function set_variable_value($var, $expr)
-    {
+    public function set_variable_value($var, $expr) {
         //TODO code this to the right namespace / class object / function environment
         if($this->debug) echo "Set variable: " . var_export($var, true) . " = " . var_export($expr, true) . "\n";
         $this->execution_stack[$var] = $expr;
     }
-
-    public function get_constant($name)
-    {
+    public function get_constant($name) {
         if($this->debug) echo "Get constant: $name" . PHP_EOL;
-        var_export($name);
         if(!isset($this->custom_constants[$name])){
             if(defined($name)){
                 return constant($name);
@@ -223,32 +291,72 @@ class PhpExecutor
         }
         return $this->custom_constants[$name];
     }
-    public function halt_execution()
-    {
+    public function halt_execution() {
         if($this->debug) echo "Halt execution\n";
 
+        var_export($this->code_stack);
         //TODO: implement an extendable way to process data after the end of the execution.
 
         die();
     }
 
-    private function normalize_path_name($path)
-    {
+    //convert relative paths to absolute paths from __DIR__
+    private function populate_path($path) {
+        $this->echo("Populate path: $path", 'M');
+
+        if(substr($path, 0, 1) == '/'){
+            return $path;
+        }
+        if(substr($path, 0, 2) == './'){
+            $path = substr($path, 2);
+        }
+        echo "Populated dir : ".dirname($this->get_current_file())."\n";
+        $pop_path = dirname($this->get_current_file()) . '/' . $path;
+
+        return $pop_path;
+    }
+    
+    private function get_root_path($filepath) {
+        $this->echo("Get root path: $filepath", 'M');
+        if(substr($filepath, 0, 1) == '/'){
+            return dirname($filepath);
+        }
+        if(substr($filepath, 0, 2) == './'){
+            $filepath = substr($filepath, 2);
+        }
+        $cwd = getcwd();
+        //$filepath = basename($filepath);
+
+        $root_path = $cwd . '/' . $filepath;
+        return dirname($root_path);
+    }
+    private function get_php_path($filepath){
+        $this->echo("Get PHP path: $filepath", 'M');
+        if(substr($filepath, 0, 1) == '/'){
+            return $filepath;
+        }
+        if(substr($filepath, 0, 2) == './'){
+            $filepath = substr($filepath, 2);
+        }
+        $filepath = getcwd() . '/' . $filepath;
+
+        return $filepath;
+    }
+    /*
+    private function normalize_path_name($path) {
         $path = str_replace(array_keys($this->path_replace), array_values($this->path_replace), $path);
         return $path;
     }
-    private function set_replace_path($path_replace)
-    {
+    private function set_replace_path($path_replace) {
         $this->path_replace = $path_replace;
         return true;
     }
-    private function set_init_script($init_script)
-    {
+    */
+    private function set_init_script($init_script) {
         $this->init_script = $init_script;
         return true;
     }
-    private function set_php_ini($php_ini)
-    {
+    private function set_php_ini($php_ini) {
         $this->php_ini = $php_ini;
         return true;
     }
@@ -265,19 +373,39 @@ class PhpExecutor
         }
     }
 
-    public function set_custom_constants($custom_constants)
-    {
+    public function set_custom_constants($custom_constants) {
         $this->custom_constants = $custom_constants;
         return true;
     }
-    public function setup_execution($config)
-    {
-        if($this->debug) echo "Setup execution\n";
+    public function setup_execution($config) {
+        $this->echo("Setup execution\n", 'Y');
 
         $this->set_php_ini($config['php_ini']);
-        $this->set_replace_path($config['path_replace']);
+        //$this->set_replace_path($config['path_replace']);
         $this->set_init_script($config['init_script']);
         
         return;
+    }
+
+
+
+    public $colors = [
+        'R' => "\033[31m", // red
+        'G' => "\033[32m", // green
+        'Y' => "\033[33m", // yellow
+        'B' => "\033[34m", // blue
+        'M' => "\033[35m", // magenta
+        'C' => "\033[36m", // cyan
+        'W' => "\033[37m", // white
+        'E' => "\033[90m", // grey
+        'S' => "\033[0m", // reset
+    ];
+
+    // Only prints white, other colors are for debug purposes
+    public function echo($text, $color) {
+        if(!$this->isDebug && $color != 'W'){
+            return false;
+        }
+        echo $this->colors[$color] . $text . $this->colors['S'] . PHP_EOL;
     }
 }
