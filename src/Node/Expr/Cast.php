@@ -57,7 +57,7 @@ Class Cast {
         //PhpParser\Node\Expr\Cast\Unset_
         //if($element instanceof \PhpParser\Node\Expr\Cast\Unset_) {
         public static function Unset_($executor, $element, $context = null) {
-            $value = $executor->execute_ast_element($element->expr);
+            $value = $executor->execute_ast_element($element->expr, $context);
             $result = (unset)$value;
 
             $executor->echo("Cast Unset: " . var_export($value, true) . " = " . var_export($result, true), 'B');

@@ -1,4 +1,5 @@
 <?php
+
 // YES I KNOW: Go and use xdebug, this is my headache.
 
 // TODO: Different levels of debug, and different outputs
@@ -11,9 +12,23 @@
 */
 namespace PhpExecutor;
 
+set_error_handler(function ($severity, $message, $file, $line) {
+    if (!(error_reporting() & $severity)) {
+        // Este error no está incluido en error_reporting
+        return false;
+    }
+    throw new \ErrorException($message, 0, $severity, $file, $line);
+});
+
+
+set_exception_handler(function ($exception) {
+    error_log("Excepción no capturada: " . $exception->getMessage());
+    error_log("Backtrace:\n" . $exception->getTraceAsString());
+});
+
 class PhpExecutor
 {
-    public $isDebug = 3;
+    public $isDebug = false;
 
     // sometimes we need to execute the PHP as it was in a different path
     // so you can use this to replace the paths in the code
@@ -63,6 +78,14 @@ class PhpExecutor
     // when we call about classes, it will work as simillar as this, but we need to implement it.
     private $native_emulated_functions = null;
 
+    // this is the output of the execution, if the debug is off, it will be stored here
+    private $return_output = false;
+    private $output = '';
+
+
+    // exception to be processed
+    private $exception = null;
+
     public function __construct() {
         list($namespace, $node) = $this->split_nameclass(get_class($this));
         $this->current_ns = '\\'.$namespace.'\\';
@@ -85,8 +108,8 @@ class PhpExecutor
         $initial_ast = $this->prepare_ast($this->php_path);
         $this->execute_ast($initial_ast, '\\');
 
-        $this->halt_execution();
-        return;
+        $result = $this->halt_execution();
+        return $result;
     }
 
     //this function get content of PHP file and saves his ast into the file_content_table array
@@ -139,7 +162,19 @@ class PhpExecutor
         }
         return $last;
     }
+    public function check_ast_implemented($class_name){
+        list($nameclass, $node) = $this->split_nameclass($class_name, '_');
+        $nameclass = str_replace('_', '\\', $nameclass);
+        $nameclass = $this->current_ns.'Node\\'.$nameclass;
+        // $node can be as 'node' or 'node_'
+        // base if (class_exists($nameclass, true) && method_exists($nameclass, $node)) {  }
+        if(class_exists($nameclass, true) && (method_exists($nameclass, $node) || method_exists($nameclass, $node.'_'))){
+            return true;
+        }
 
+        die("NOT CREATED BUT USED ON A ARGUMENT: $nameclass $node");
+        
+    }
     //this function executes the ast element and returns the result
     public function execute_ast_element($element, $context = null) {
         //TODO: refactor to encapsulate each nodetype into a custom class that being called dinamically
@@ -152,6 +187,7 @@ class PhpExecutor
         $class_name = str_replace('PhpParser\\', $this->current_ns, $class_name);
 
         list($nameclass, $node) = $this->split_nameclass($class_name);
+        //$this->echo("Class: $nameclass, Node: $node", 'R');
         if (class_exists($nameclass, true) && method_exists($nameclass, $node)) {   
             //call the static method $node from the class $nameclass passing 3 arguments, $this, $element and $context
             $result = $nameclass::$node($this, $element, $context);
@@ -219,7 +255,7 @@ class PhpExecutor
     public function execute_for($element, $context) {
         //init variables
         foreach($element->init as $init){
-            $this->execute_ast_element($init);
+            $this->execute_ast_element($init, $context);
         }
         $condCount = count($element->cond);
         $isTrue = false;
@@ -229,10 +265,10 @@ class PhpExecutor
             $lastCond = $element->cond[$condCount - 1];
         }
         
-        while ($isTrue || $this->execute_ast_element($lastCond)) {
+        while ($isTrue || $this->execute_ast_element($lastCond, $context)) {
             //iterate for each condition except the last one and execute_ast_element on all of them
             for ($i = 0; $i < $condCount - 1; $i++) {
-                $this->execute_ast_element($element->cond[$i]);
+                $this->execute_ast_element($element->cond[$i], $context);
             }
             //TODO implement the break count
 
@@ -242,7 +278,7 @@ class PhpExecutor
             //check if the element is a break, if it is, then break the loop
             
             foreach ($element->loop as $loop) {
-                $this->execute_ast_element($loop);
+                $this->execute_ast_element($loop, $context);
             }
         }
         //if the return value is a break with a count, we need to populate that count up to the upper loops
@@ -278,17 +314,57 @@ class PhpExecutor
         $this->echo("Mimic function: $name", 'M');
 
         if($this->native_emulated_functions->function_exists($name)){
+            echo "LA FUNCIO EXISTEIX\n";
             return $this->native_emulated_functions->execute_function($name, $this, $element, $context);
         }
 
-        $this->echo("Function not found: $name", 'R');
-        
-        $result = 'WTF!';
+        //get referenced variables
+        //var_export($element);
+        $arguments = [];
+        // we need that each argument is a reference to the emulated variable.
+        // prepare arguments
+
+        $result = $this->execute_native_function($name, $element, $context);
+
+        //$this->echo("Function not found: $name", 'R');
 
         return $result;
     }
+    private function execute_native_function($func, $element, $context) {
+        $this->echo("Execute native function: $func", 'M');
+        
+        $arguments = $element->args;
+        $input = [];
+        foreach($arguments as $arg){
+            $argument = $this->execute_ast_element($arg, $context);
+
+            switch($argument[0]){
+                case 'Expr_Variable':
+                    $name = $this->get_variable_name($argument[1], $context);
+                    $input[] = &$this->get_variable_ref($name, $context);
+
+                    break;
+                default:
+                    if($this->check_ast_implemented($argument[0])){
+                        $input[] = $this->execute_ast_element($argument[1], $context);
+                        break;
+                    }
+                    die("ARGUMENT NOT RECOGNIZED: " . var_export($argument, true));
+                    break;
+            }
+        }
 
 
+        $result = call_user_func_array($func, $input);
+        $this->echo("Result: " . var_export($result, true), 'M');
+        return $result;
+
+    }
+    public function execute_method($var, $method, $args, $context){
+        //$this->execute_method($var, $method, $element->args, $context);
+        $this->echo("Execute method: ($var)->($method)", 'R');
+        die();
+    }
 
 
     public function create_function($element, $context) {
@@ -321,29 +397,45 @@ class PhpExecutor
     }
 
 
-    public function get_variable_name($var) {
+    public function get_variable_name($var, $context = false) {
+        //TODO code this to the right namespace / class object / function environment
+        //var_export($var);die();
+        //Excepción no capturada: Undefined property: PhpParser\Node\Expr\ArrayDimFetch::$name
+        if(!is_string($var->name)){
+            return $this->execute_ast_element($var->name, $context);
+        }
+        return $var->name;
+    }
+    public function &get_variable_ref($var, $context = false) {
+        //TODO code this to the right namespace / class object / function environment
+        $this->echo("GET VARIABLE REF: [$var] in context [$context]", 'M');
+        //die("GET VARIABLE REF: ". $var);
+        //$name = $this->get_variable_name($var, $context);
+        $variable_name = $context . $var;
+        return $this->execution_stack[$variable_name];
+    }
+    public function exists_variable_name($var, $context = false) {
         //TODO code this to the right namespace / class object / function environment
         $name=$var->name;
-        if(!is_string($name)) $name = $this->execute_ast_element($name); 
-        return $name;
+        if(!is_string($name)) $name = $this->execute_ast_element($name, $context);
+        $variable_name = $context . $name;
+        return isset($this->execution_stack[$variable_name]);
     }
-    public function exists_variable_name($var) {
+    public function get_variable_value($name, $context = false) {
         //TODO code this to the right namespace / class object / function environment
-        $name=$var->name;
-        if(!is_string($name)) $name = $this->execute_ast_element($name); 
-        return isset($this->execution_stack[$name]);
+        if(!is_string($name)) $name = $this->execute_ast_element($name, $context);
+        $variable_name = $context . $name;
+        $this->echo("Get variable: ($context)[$variable_name] " . var_export($name, true), 'M');
+        return $this->execution_stack[$variable_name];
     }
-    public function get_variable_value($name) {
+    public function set_variable_value($var, $expr, $context = false) {
         //TODO code this to the right namespace / class object / function environment
-        if(!is_string($name)) $name = $this->execute_ast_element($name);
-        return $this->execution_stack[$name];
+        $this->echo("Set variable: [$context] " . var_export($var, true) . " = " . substr(var_export($expr, true),0,128), 'M');
+        $variable_name = $context . $var;
+        $this->execution_stack[$variable_name] = $expr;
+        return $expr;
     }
-    public function set_variable_value($var, $expr) {
-        //TODO code this to the right namespace / class object / function environment
-        $this->echo("Set variable: " . var_export($var, true) . " = " . var_export($expr, true), 'M');
-        $this->execution_stack[$var] = $expr;
-    }
-    public function get_constant($name) {
+    public function get_constant($name, $context = false) {
         $this->echo("Get constant: $name", 'M');
         if(!isset($this->custom_constants[$name])){
             if(defined($name)){
@@ -358,7 +450,10 @@ class PhpExecutor
 
         $this->echo(var_export($this->code_stack, true), 'E');
         //TODO: implement an extendable way to process data after the end of the execution.
-
+        //var_export($this->output);
+        if($this->return_output){
+            return $this->output;
+        }
         die();
     }
 
@@ -422,8 +517,8 @@ class PhpExecutor
         $this->php_ini = $php_ini;
         return true;
     }
-    private function split_nameclass($fullClassName) {
-        $lastBackslashPos = strrpos($fullClassName, '\\');
+    private function split_nameclass($fullClassName, $separator = '\\') {
+        $lastBackslashPos = strrpos($fullClassName, $separator);
     
         if ($lastBackslashPos !== false) {
             $namespace = substr($fullClassName, 0, $lastBackslashPos);
@@ -440,11 +535,21 @@ class PhpExecutor
         return true;
     }
     public function setup_execution($config) {
+        //check return_output
+        if(isset($config['return_output'])) {
+            $this->return_output = $config['return_output'];
+        }
+        if(isset($config['debug'])) {
+            $this->isDebug = $config['debug'];
+        }
+
         $this->echo("Setup execution", 'Y');
 
         $this->set_php_ini($config['php_ini']);
         //$this->set_replace_path($config['path_replace']);
         $this->set_init_script($config['init_script']);
+
+        
         
         return;
     }
@@ -486,13 +591,24 @@ class PhpExecutor
         if($this->isDebug === 3 && !in_array($color, ['R', 'W','Y', 'M', 'G', 'C', 'B'])) {
             return false;
         }
-        
-        if($color == 'W'){
-            $text = '$ ' . $text;
-        }else{
-            $text .= PHP_EOL;
-        }
 
-        echo $this->colors[$color] . $text . $this->colors['S'];
+        if($color == 'W' && $this->return_output){
+            $this->output.=$text;
+        }
+        
+        if($this->isDebug !== false){
+            if($color == 'W'){
+                $text = '$ ' . $text;
+            }else{
+                $text .= PHP_EOL;
+            }
+
+            $current_output = $this->colors[$color] . $text . $this->colors['S'];
+            if($this->return_output){
+                fwrite(STDERR, $current_output);
+            }else{
+                echo $current_output;
+            }
+        }
     }
 }

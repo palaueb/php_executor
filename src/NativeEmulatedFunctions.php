@@ -10,6 +10,7 @@ final class NativeEmulatedFunctions {
 
     public function init_load_libs() {
         $this->load_functions_from_file(__DIR__.'/Functions/SPL.php');
+        $this->load_functions_from_file(__DIR__.'/Functions/strings.php');
     }
 
     public static function get_instance() {

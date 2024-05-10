@@ -7,7 +7,13 @@ Class Node {
     //if($element instanceof \PhpParser\Node\Arg) {
     public static function Arg($executor, $element, $context = null) {
         $executor->echo("Arg", 'B');
-        return $executor->execute_ast_element($element->value);
+        /*
+        if(get_class($element) == 'PhpParser\Node\Expr\Variable') {
+            return $executor->get_variable_name($element->value, $context);
+        }
+        */
+        return [$element->value->getType(), $element->value];
+        //return $executor->execute_ast_element($element->value, $context);
     }
     //PhpParser\Node\Identifier
     //if($element instanceof \PhpParser\Node\Identifier) {
@@ -22,9 +28,9 @@ Class Node {
         $executor->echo("ArrayItem", 'B');
 
         $key = null;
-        $value = $executor->execute_ast_element($element->value);
+        $value = $executor->execute_ast_element($element->value, $context);
         if(!is_null($element->key)) {
-            $key = $executor->execute_ast_element($element->key);
+            $key = $executor->execute_ast_element($element->key, $context);
             return [$key => $value];
         }
         return [$value];

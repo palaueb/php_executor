@@ -30,7 +30,7 @@ Class AssignOp {
 
             $executor->echo("AssignOp Concat: " . $left . " . " . $right . " = " . $result, 'B');
 
-            $executor->set_variable_value($name, $result);
+            $executor->set_variable_value($name, $result, $context);
             return true;
         }
         //PhpParser\Node\Expr\AssignOp\Plus
@@ -132,7 +132,7 @@ Class AssignOp {
             $name = $executor->get_variable_name($element->var, $context); //ha de ser el nom de la variable
             $expr = $executor->execute_ast_element($element->expr, $context);
 
-            $left = $executor->get_variable_value($name, $context, $context);
+            $left = $executor->get_variable_value($name, $context);
             $right = $expr;
             $result = $left | $right;
 

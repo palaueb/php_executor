@@ -8,10 +8,10 @@ final Class Expr {
         $name = $executor->get_variable_name($element->var, $context); //ha de ser el nom de la variable
         $expr = $executor->execute_ast_element($element->expr, $context);
 
-        $executor->echo("Assign: [$name] = [$expr]", 'B');
+        $executor->echo("Assign: [$name] = [" . var_export($expr, true) . "]", 'B');
 
-        $executor->set_variable_value($name, $expr, $context);
-        return true;
+        $assigned_value = $executor->set_variable_value($name, $expr, $context);
+        return $assigned_value;
     }
     //PhpParser\Node\Expr\BooleanNot
     public static function BooleanNot($executor, $element, $context = null) {
@@ -47,12 +47,22 @@ final Class Expr {
     }
     //PhpParser\Node\Expr\FuncCall
     public static function FuncCall($executor, $element, $context = null) {
-        $name = $executor->execute_ast_element($element->name);
+        $name = $executor->execute_ast_element($element->name, $context);
         $executor->echo("FuncCall [$name]", 'B');
 
         $result = $executor->execute_function($element, $context);
         
         return $result;
+    }
+    //PhpParser\Node\Expr\MethodCall
+    public static function MethodCall($executor, $element, $context = null) {
+        $executor->echo("MethodCall", 'B');
+
+        $var = $executor->execute_ast_element($element->var, $context);
+        $method = $executor->execute_ast_element($element->name, $context);
+        $executor->execute_method($var, $method, $element->args, $context);
+        
+        return $executor->execute_ast_element($element->var, $context);
     }
     //PhpParser\Node\Expr\AssignRef
     public static function AssignRef($executor, $element, $context = null) {
@@ -62,9 +72,16 @@ final Class Expr {
         die("TODO AssignRef");
         return $executor->execute_ast_element($element->expr, $context);
     }
+    //PhpParser\Node\Expr\Print_
+    public static function Print_($executor, $element, $context = null) {
+        $expr = $executor->execute_ast_element($element->expr, $context);
+        $executor->echo("Print: [$expr]", 'B');
+        $executor->echo($expr, 'W');
+        return true;
+    }
     //PhpParser\Node\Expr\Variable
     public static function Variable($executor, $element, $context = null) {
-        $executor->echo("Variable " , 'B');
+        $executor->echo("Variable: ($context)[".$element->name."]", 'B');
         return $executor->get_variable_value($element->name, $context);
     }
     //PhpParser\Node\Expr\ConstFetch
@@ -72,6 +89,20 @@ final Class Expr {
         $constant_name = $executor->execute_ast_element($element->name, $context);
         $executor->echo("ConstFetch: [".$constant_name."]", 'B');
         return $executor->get_constant($constant_name, $context);
+    }
+    //PhpParser\Node\Expr\Ternary
+    public static function Ternary($executor, $element, $context = null) {
+        $cond = $executor->execute_ast_element($element->cond, $context);
+        $if = $executor->execute_ast_element($element->if, $context);
+        $else = $executor->execute_ast_element($element->else, $context);
+        $executor->echo("Ternary: [".$cond." ? ".$if." : ".$else."]", 'B');
+        return $cond ? $if : $else;
+    }
+    //PhpParser\Node\Expr\UnaryMinus
+    public static function UnaryMinus($executor, $element, $context = null) {
+        $expr = $executor->execute_ast_element($element->expr, $context);
+        $executor->echo("UnaryMinus: [-".$expr."]", 'B');
+        return -$expr;
     }
     //PhpParser\Node\Expr\PostInc
     public static function PostInc($executor, $element, $context = null) {
@@ -92,7 +123,6 @@ final Class Expr {
         return $value;
     }
     //PhpParser\Node\Expr\Include_
-    //if($element instanceof \PhpParser\Node\Expr\Include_) {
     public static function Include_($executor, $element, $context = null) {
         $type = $element->type; //1: include, 2: include_once, 3: require, 4: require_once, 
         $file = $executor->execute_ast_element($element->expr, $context);
@@ -101,7 +131,6 @@ final Class Expr {
         return $executor->include_file($file, $type, $context);
     }
     //PhpParser\Node\Expr\Isset_
-    //if($element instanceof \PhpParser\Node\Expr\Isset_) {
     public static function Isset_($executor, $element, $context = null) {
         $result = true;
         foreach($element->vars as $var) {
@@ -113,5 +142,14 @@ final Class Expr {
         }
         $executor->echo("Isset [$result]", 'B');
         return true;
+    }
+    //PhpParser\Node\Expr\ArrayDimFetch
+    public static function ArrayDimFetch($executor, $element, $context = null) {
+        var_export($element);die();
+
+        $var = $executor->execute_ast_element($element->var, $context);
+        $dim = $executor->execute_ast_element($element->dim, $context);
+        // TODO do the code to have multidimensional arrays and be able to retrieve the exact value
+        // maybe we can cheat it using PHP arrays itself, but I thing it's not the right way.
     }
 }
